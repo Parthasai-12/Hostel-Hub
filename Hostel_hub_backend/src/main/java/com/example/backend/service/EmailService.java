@@ -1,5 +1,7 @@
 package com.example.backend.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
@@ -9,7 +11,9 @@ import org.springframework.stereotype.Service;
 @Service
 public class EmailService {
 
-    @Autowired(required = false)
+    private static final Logger log = LoggerFactory.getLogger(EmailService.class);
+
+    @Autowired
     private JavaMailSender mailSender;
 
     @Value("${spring.mail.username:noreply@hostel.com}")
@@ -20,30 +24,24 @@ public class EmailService {
         String body = "Your OTP for Hostel Registration is: " + otp + "\n" +
                 "This code is valid for 5 minutes. Please do not share this code with anyone.";
 
-        if (mailSender != null) {
-            try {
-                SimpleMailMessage message = new SimpleMailMessage();
-                message.setTo(to);
-                message.setSubject(subject);
-                message.setText(body);
-                message.setFrom(fromEmail);
-                mailSender.send(message);
-                System.out.println("[EmailService] OTP sent successfully to " + to);
-            } catch (Exception e) {
-                System.err.println("[EmailService] FAILED to send email to " + to + ". Error: " + e.getMessage());
-                System.err.println(
-                        "[EmailService] Cause: " + (e.getCause() != null ? e.getCause().getMessage() : "unknown"));
-                System.out.println("=================================================");
-                System.out.println("[CONSOLE FALLBACK] OTP for " + to + " is -> " + otp);
-                System.out.println("=================================================");
-                // Re-throw so the frontend gets an error and user knows email didn't send
-                throw new RuntimeException("Failed to send OTP email. Please check your mail configuration.", e);
-            }
-        } else {
-            System.out.println("[EmailService] JavaMailSender bean not found. Operating in console mode.");
-            System.out.println("=================================================");
-            System.out.println("[FALLBACK] OTP for " + to + " is -> " + otp);
-            System.out.println("=================================================");
+        log.info("[EmailService] Attempting to send OTP email to: {}", to);
+        log.debug("[EmailService] From: {}, Subject: {}", fromEmail, subject);
+
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(to);
+            message.setSubject(subject);
+            message.setText(body);
+            message.setFrom(fromEmail);
+            mailSender.send(message);
+            log.info("[EmailService] ✅ OTP email sent successfully to: {}", to);
+        } catch (Exception e) {
+            log.error("[EmailService] ❌ FAILED to send OTP email to: {}", to);
+            log.error("[EmailService] Error: {}", e.getMessage());
+            log.error("[EmailService] Cause: {}", e.getCause() != null ? e.getCause().getMessage() : "unknown");
+            log.debug("[EmailService] Full stack trace:", e);
+            // Rethrow so the controller returns an error to the frontend
+            throw new RuntimeException("Failed to send OTP email. Please check SMTP configuration.", e);
         }
     }
 }

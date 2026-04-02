@@ -14,14 +14,57 @@ import ForgotPassword from './components/ForgotPassword';
 import './App.css';
 
 function App() {
-  const [currentView, setCurrentView] = useState('landing');
+  // Initialize view based on URL. If the user hits /login directly but is logged in, they'll just see Home anyway soon.
+  const initialView = window.location.pathname === '/login' ? 'login' : 'landing';
+  const [currentView, setCurrentView] = useState(initialView);
   const [userRole, setUserRole] = useState(localStorage.getItem('role'));
   const [userName, setUserName] = useState(localStorage.getItem('userName') || '');
 
   useEffect(() => {
+    // Check URL for OAuth token first
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlToken = urlParams.get('token');
+    
+    if (urlToken) {
+      localStorage.setItem('token', urlToken);
+      let parsedRole = 'STUDENT';
+      let parsedName = '';
+      try {
+        const payload = JSON.parse(atob(urlToken.split('.')[1]));
+        parsedRole = payload.role || (payload.authorities ? (Array.isArray(payload.authorities) ? payload.authorities[0] : payload.authorities) : 'STUDENT');
+        parsedName = payload.name || payload.sub || '';
+      } catch (e) {
+        console.error("Error parsing JWT:", e);
+      }
+      localStorage.setItem('role', parsedRole);
+      if (parsedName) localStorage.setItem('userName', parsedName);
+      
+      setUserRole(parsedRole);
+      setUserName(parsedName);
+      
+      // Clean up URL to show proper frontend route (e.g. /home) without the token hash
+      window.history.replaceState({}, document.title, window.location.pathname);
+      
+      // Fetch user details async to get up-to-date name
+      import('./services/api').then(({ default: api }) => {
+        api.get('/users/me').then(res => {
+          if (res.data?.name) {
+            localStorage.setItem('userName', res.data.name);
+            setUserName(res.data.name);
+          }
+        }).catch(() => {});
+      });
+      return; // Skip the rest since we just authenticated perfectly
+    }
+
+    // Standard session check
     const token = localStorage.getItem('token');
     const role = localStorage.getItem('role');
     const storedName = localStorage.getItem('userName');
+    
+    // Also if the browser path is /login, we should not explicitly keep them on login if they are already logged in
+    // But since currentView defaults to 'landing', they just stay on landing
+    
     if (token && role) {
       setUserRole(role);
       if (storedName) setUserName(storedName);

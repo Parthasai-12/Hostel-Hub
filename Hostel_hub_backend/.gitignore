@@ -35,3 +35,8 @@ build/
 ### Environment Variables ###
 .env
 .env.*
+*.properties
+
+### Local Runtime Files ###
+uploads/
+*.log

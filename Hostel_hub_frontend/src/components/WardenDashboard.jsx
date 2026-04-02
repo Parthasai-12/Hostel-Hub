@@ -27,7 +27,7 @@ const WardenDashboard = ({ onNavigate, onLogout, userName }) => {
     useEffect(() => {
         const role = localStorage.getItem('role');
         if (role !== 'WARDEN') {
-            console.warn('Unauthorized access to warden dashboard');
+// logger removed
             onLogout();
             return;
         }
@@ -41,7 +41,7 @@ const WardenDashboard = ({ onNavigate, onLogout, userName }) => {
             const response = await api.get('/complaints/all');
             setComplaints(response.data);
         } catch (err) {
-            console.error('Error fetching complaints:', err);
+// logger removed
             setError('Failed to load complaints. Please try again later.');
         } finally {
             setIsLoading(false);
@@ -54,7 +54,7 @@ const WardenDashboard = ({ onNavigate, onLogout, userName }) => {
             await api.put(`/complaints/${id}/status`, { status: newStatus });
             await fetchComplaints();
         } catch (err) {
-            console.error('Error updating status:', err);
+// logger removed
             alert('Failed to update status');
         } finally {
             setUpdatingId(null);

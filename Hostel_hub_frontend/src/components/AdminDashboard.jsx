@@ -32,7 +32,7 @@ const AdminDashboard = ({ onNavigate, onLogout, userName }) => {
     useEffect(() => {
         const role = localStorage.getItem('role');
         if (role !== 'ADMIN') {
-            console.warn('Unauthorized access to admin dashboard');
+// logger removed
             onLogout();
         }
     }, []);

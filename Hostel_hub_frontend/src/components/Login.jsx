@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Lock, LogIn, AlertCircle, ArrowLeft } from 'lucide-react';
-import api from '../services/api';
+import api, { BASE_URL } from '../services/api';
 import './Login.css';
 
 const Login = ({ onNavigate, onLoginSuccess }) => {
@@ -22,7 +22,7 @@ const Login = ({ onNavigate, onLoginSuccess }) => {
                 role = payload.role || (payload.authorities ? (Array.isArray(payload.authorities) ? payload.authorities[0] : payload.authorities) : 'STUDENT');
                 name = payload.name || payload.sub || '';
             } catch (e) {
-                console.error('Error decoding token:', e);
+// logger removed
             }
             localStorage.setItem('role', role);
             if (name) localStorage.setItem('userName', name);
@@ -58,7 +58,7 @@ const Login = ({ onNavigate, onLoginSuccess }) => {
                     const payload = JSON.parse(atob(token.split('.')[1]));
                     role = payload.role || (payload.authorities ? (Array.isArray(payload.authorities) ? payload.authorities[0] : payload.authorities) : null);
                 } catch (e) {
-                    console.error('Error decoding token:', e);
+// logger removed
                 }
             }
             if (!role) role = 'STUDENT';
@@ -70,7 +70,7 @@ const Login = ({ onNavigate, onLoginSuccess }) => {
                 const userRes = await api.get('/users/me');
                 if (userRes.data?.name) localStorage.setItem('userName', userRes.data.name);
             } catch (e) {
-                console.error('Error fetching user details:', e);
+// logger removed
             }
             onLoginSuccess('landing');
 
@@ -183,7 +183,7 @@ const Login = ({ onNavigate, onLoginSuccess }) => {
 
                     <div className="google-auth-container" style={{ textAlign: 'center', marginTop: '1.5rem', marginBottom: '0.5rem' }}>
                         <a 
-                            href="http://localhost:8080/oauth2/authorization/google" 
+                            href={`${BASE_URL}/oauth2/authorization/google`} 
                             className="google-btn"
                             style={{
                                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem',

@@ -1,7 +1,9 @@
 import axios from 'axios';
 
+export const BASE_URL = import.meta.env.VITE_API_URL || 'https://hostel-hub-production.up.railway.app';
+
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080',
+    baseURL: BASE_URL,
     headers: {
         'Content-Type': 'application/json',
     },

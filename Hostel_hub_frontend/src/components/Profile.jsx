@@ -14,7 +14,7 @@ const Profile = ({ onNavigate }) => {
                 const response = await api.get('/users/me');
                 setUser(response.data);
             } catch (err) {
-                console.error('Failed to fetch profile:', err);
+// logger removed
                 setError('Could not load profile data.');
             } finally {
                 setLoading(false);

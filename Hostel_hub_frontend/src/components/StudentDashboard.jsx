@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import api from '../services/api';
+import api, { BASE_URL } from '../services/api';
 import {
     LayoutDashboard,
     FileText,
@@ -33,7 +33,7 @@ const StudentDashboard = ({ onNavigate, complaints, onLogout, initialView = 'das
             const response = await api.get('/complaints/my');
             setRealComplaints(response.data);
         } catch (err) {
-            console.error('Error fetching complaints:', err);
+// logger removed
         } finally {
             setIsLoading(false);
         }
@@ -275,7 +275,7 @@ const StudentDashboard = ({ onNavigate, complaints, onLogout, initialView = 'das
                                                         <td className="image-cell">
                                                             {complaint.imageUrl ? (
                                                                 <img
-                                                                    src={`http://localhost:8080${complaint.imageUrl}`}
+                                                                    src={`${BASE_URL}${complaint.imageUrl}`}
                                                                     alt="Complaint"
                                                                     style={{
                                                                         width: '60px',
@@ -284,7 +284,7 @@ const StudentDashboard = ({ onNavigate, complaints, onLogout, initialView = 'das
                                                                         borderRadius: '8px',
                                                                         cursor: 'pointer'
                                                                     }}
-                                                                    onClick={() => window.open(`http://localhost:8080${complaint.imageUrl}`, '_blank')}
+                                                                    onClick={() => window.open(`${BASE_URL}${complaint.imageUrl}`, '_blank')}
                                                                 />
                                                             ) : (
                                                                 <span style={{ color: '#9ca3af', fontSize: '0.875rem' }}>No image</span>
@@ -374,7 +374,7 @@ const StudentDashboard = ({ onNavigate, complaints, onLogout, initialView = 'das
                                                         <td className="image-cell">
                                                             {complaint.imageUrl ? (
                                                                 <img
-                                                                    src={`http://localhost:8080${complaint.imageUrl}`}
+                                                                    src={`${BASE_URL}${complaint.imageUrl}`}
                                                                     alt="Complaint"
                                                                     style={{
                                                                         width: '60px',
@@ -383,7 +383,7 @@ const StudentDashboard = ({ onNavigate, complaints, onLogout, initialView = 'das
                                                                         borderRadius: '8px',
                                                                         cursor: 'pointer'
                                                                     }}
-                                                                    onClick={() => window.open(`http://localhost:8080${complaint.imageUrl}`, '_blank')}
+                                                                    onClick={() => window.open(`${BASE_URL}${complaint.imageUrl}`, '_blank')}
                                                                 />
                                                             ) : (
                                                                 <span style={{ color: '#9ca3af', fontSize: '0.875rem' }}>No image</span>

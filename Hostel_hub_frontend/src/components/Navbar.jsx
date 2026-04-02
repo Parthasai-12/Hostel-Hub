@@ -55,7 +55,7 @@ const Navbar = ({ scrolled, onNavigate, isLoggedIn, onLogout }) => {
             import('../services/api').then(({ default: api }) => {
                 api.get('/users/me').then(res => {
                     setUser(res.data);
-                }).catch(err => console.log('Failed to fetch user generic info', err));
+                }).catch(err => {});
             });
         }
         return () => window.removeEventListener('scroll', handleScroll);

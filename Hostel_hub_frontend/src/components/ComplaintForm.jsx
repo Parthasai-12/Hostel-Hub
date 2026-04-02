@@ -81,7 +81,7 @@ const ComplaintForm = ({ onNavigate, onAddComplaint }) => {
             // Navigate back to dashboard
             onNavigate('dashboard');
         } catch (err) {
-            console.error('Error submitting complaint:', err);
+// logger removed
             setError(err.response?.data?.message || 'Failed to submit complaint. Please try again.');
         } finally {
             setIsLoading(false);

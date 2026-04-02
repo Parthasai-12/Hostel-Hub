@@ -26,7 +26,7 @@ public class SecurityConfig {
     @Autowired
     private OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
 
-    @Value("${FRONTEND_URL:http://localhost:5173}")
+    @Value("${FRONTEND_URL}")
     private String frontendUrl;
 
     @Bean

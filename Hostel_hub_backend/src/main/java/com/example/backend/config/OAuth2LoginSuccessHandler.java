@@ -30,7 +30,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
     @Autowired
     private JwtUtil jwtUtil;
 
-    @Value("${FRONTEND_URL:http://localhost:5173}")
+    @Value("${FRONTEND_URL}")
     private String frontendUrl;
 
     private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();

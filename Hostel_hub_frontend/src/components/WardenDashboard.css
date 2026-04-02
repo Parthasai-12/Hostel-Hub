@@ -1,0 +1,311 @@
+/* WardenDashboard.css – mirrors AdminDashboard styles for the Warden role */
+
+.warden-dashboard {
+    display: flex;
+    min-height: 100vh;
+    background: var(--background, #0f172a);
+    color: var(--text-primary, #e2e8f0);
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    position: relative;
+}
+
+/* ─── Sidebar ─── */
+.warden-dashboard .sidebar {
+    width: 260px;
+    min-height: 100vh;
+    background: rgba(15, 23, 42, 0.95);
+    border-right: 1px solid rgba(100, 116, 139, 0.15);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 100;
+    backdrop-filter: blur(20px);
+}
+
+.warden-dashboard .sidebar-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid rgba(100, 116, 139, 0.15);
+}
+
+.warden-dashboard .logo-text {
+    font-size: 1.1rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.warden-dashboard .sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 1rem 0.75rem;
+    flex: 1;
+}
+
+.warden-dashboard .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.7rem 1rem;
+    border-radius: 10px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary, #94a3b8);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s ease;
+    width: 100%;
+}
+
+.warden-dashboard .nav-item:hover {
+    background: rgba(102, 126, 234, 0.12);
+    color: #667eea;
+}
+
+.warden-dashboard .nav-item.active {
+    background: linear-gradient(135deg, rgba(102,126,234,0.2), rgba(118,75,162,0.2));
+    color: #a78bfa;
+    border: 1px solid rgba(102, 126, 234, 0.2);
+}
+
+/* ─── Main Content ─── */
+.warden-dashboard .main-content {
+    margin-left: 260px;
+    flex: 1;
+    padding: 2rem;
+    min-height: 100vh;
+    overflow-y: auto;
+}
+
+/* ─── Header ─── */
+.warden-dashboard .dashboard-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+}
+
+.warden-dashboard .dashboard-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-primary, #e2e8f0);
+    margin: 0 0 0.25rem;
+}
+
+.warden-dashboard .dashboard-subtitle {
+    color: var(--text-secondary, #94a3b8);
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+/* ─── Category Filters ─── */
+.warden-dashboard .category-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+}
+
+.warden-dashboard .category-btn {
+    padding: 0.6rem 1.25rem;
+    border-radius: 8px;
+    border: 1px solid rgba(100, 116, 139, 0.3);
+    background: rgba(30, 41, 59, 0.8);
+    color: var(--text-secondary, #94a3b8);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.warden-dashboard .category-btn:hover {
+    background: rgba(102, 126, 234, 0.1);
+    color: #e2e8f0;
+}
+
+.warden-dashboard .category-btn.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #ffffff;
+    border-color: transparent;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+/* ─── Stats Grid ─── */
+.warden-dashboard .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.warden-dashboard .stat-card {
+    background: rgba(30, 41, 59, 0.8);
+    border: 1px solid rgba(100, 116, 139, 0.15);
+    border-radius: 14px;
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.warden-dashboard .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+
+.warden-dashboard .stat-icon {
+    padding: 0.75rem;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.warden-dashboard .pending-bg   { background: rgba(234,179,8,0.15);  color: #eab308; }
+.warden-dashboard .in-progress-bg { background: rgba(59,130,246,0.15); color: #3b82f6; }
+.warden-dashboard .resolved-bg  { background: rgba(16,185,129,0.15); color: #10b981; }
+
+.warden-dashboard .stat-label {
+    font-size: 0.8rem;
+    color: var(--text-secondary, #94a3b8);
+    margin: 0 0 0.25rem;
+}
+
+.warden-dashboard .stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary, #e2e8f0);
+    margin: 0;
+}
+
+/* ─── Table Card ─── */
+.warden-dashboard .table-card {
+    background: rgba(30, 41, 59, 0.8);
+    border: 1px solid rgba(100, 116, 139, 0.15);
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.warden-dashboard .table-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid rgba(100, 116, 139, 0.15);
+}
+
+.warden-dashboard .table-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--text-primary, #e2e8f0);
+}
+
+.warden-dashboard .table-wrapper {
+    overflow-x: auto;
+}
+
+.warden-dashboard .complaints-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.warden-dashboard .complaints-table th,
+.warden-dashboard .complaints-table td {
+    padding: 0.875rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid rgba(100, 116, 139, 0.1);
+    font-size: 0.875rem;
+}
+
+.warden-dashboard .complaints-table th {
+    color: var(--text-secondary, #94a3b8);
+    font-weight: 500;
+    background: rgba(15, 23, 42, 0.5);
+    white-space: nowrap;
+}
+
+.warden-dashboard .complaints-table tbody tr:hover {
+    background: rgba(102, 126, 234, 0.05);
+}
+
+.warden-dashboard .complaints-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.warden-dashboard .description-cell {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.warden-dashboard .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.3rem 0.65rem;
+    border-radius: 9999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.warden-dashboard .status-badge.pending     { background: rgba(234,179,8,0.15);  color: #eab308; }
+.warden-dashboard .status-badge.in-progress { background: rgba(59,130,246,0.15); color: #3b82f6; }
+.warden-dashboard .status-badge.resolved    { background: rgba(16,185,129,0.15); color: #10b981; }
+
+.warden-dashboard .status-select {
+    background: rgba(15, 23, 42, 0.8);
+    color: var(--text-primary, #e2e8f0);
+    border: 1px solid rgba(100, 116, 139, 0.3);
+    border-radius: 6px;
+    padding: 0.35rem 0.6rem;
+    font-size: 0.82rem;
+    cursor: pointer;
+    outline: none;
+}
+
+.warden-dashboard .status-select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ─── Mobile ─── */
+.warden-dashboard .mobile-menu-btn {
+    display: none;
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    z-index: 200;
+    background: rgba(30, 41, 59, 0.9);
+    border: 1px solid rgba(100, 116, 139, 0.2);
+    border-radius: 8px;
+    padding: 0.5rem;
+    color: var(--text-primary, #e2e8f0);
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+}
+
+@media (max-width: 768px) {
+    .warden-dashboard .mobile-menu-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .warden-dashboard .sidebar {
+        position: fixed;
+        z-index: 150;
+    }
+
+    .warden-dashboard .main-content {
+        margin-left: 0;
+        padding: 1rem;
+        padding-top: 4rem;
+    }
+}

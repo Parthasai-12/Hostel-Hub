@@ -32,10 +32,11 @@ build/
 ### VS Code ###
 .vscode/
 
-### Environment Variables ###
+### Environment Variables & Secrets - NEVER COMMIT ###
 .env
 .env.*
-*.properties
+application-secret.properties
+**/application-secret.properties
 
 ### Local Runtime Files ###
 uploads/

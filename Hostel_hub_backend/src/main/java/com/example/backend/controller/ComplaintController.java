@@ -69,7 +69,23 @@ public class ComplaintController {
     @PutMapping("/{id}/status")
     @PreAuthorize("hasRole('WARDEN')")
     public ResponseEntity<Complaint> updateComplaintStatus(@PathVariable Long id, @Valid @RequestBody StatusUpdateRequest request) {
-        Complaint complaint = complaintService.updateComplaintStatus(id, request.getStatus());
+        Complaint complaint = complaintService.updateComplaintStatus(id, request.getStatus(), request.getRemarks());
         return ResponseEntity.ok(complaint);
+    }
+
+    @GetMapping("/admin/all")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<Complaint>> getAdminComplaints(
+            @RequestParam(required = false) Complaint.Status status,
+            @RequestParam(required = false) ComplaintCategory category) {
+        List<Complaint> complaints = complaintService.getFilteredComplaints(status, category);
+        return ResponseEntity.ok(complaints);
+    }
+
+    @DeleteMapping("/admin/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> deleteComplaint(@PathVariable Long id) {
+        complaintService.deleteComplaint(id);
+        return ResponseEntity.ok().build();
     }
 }

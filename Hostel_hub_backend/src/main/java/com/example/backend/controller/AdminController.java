@@ -2,6 +2,7 @@ package com.example.backend.controller;
 
 import com.example.backend.dto.RegisterRequest;
 import com.example.backend.entity.User;
+import com.example.backend.service.AdminService;
 import com.example.backend.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +19,9 @@ public class AdminController {
 
     @Autowired
     private AuthService authService;
+
+    @Autowired
+    private AdminService adminService;
 
     /**
      * Create a new warden user. Only accessible by users with ADMIN role.
@@ -40,6 +44,25 @@ public class AdminController {
             response.put("email", savedUser.getEmail());
             
             return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/wardens")
+    public ResponseEntity<?> getAllWardens() {
+        return ResponseEntity.ok(adminService.getAllWardens());
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/wardens/{id}")
+    public ResponseEntity<?> removeWarden(@PathVariable Long id) {
+        try {
+            adminService.removeWarden(id);
+            return ResponseEntity.ok().build();
         } catch (IllegalArgumentException e) {
             Map<String, String> errorResponse = new HashMap<>();
             errorResponse.put("message", e.getMessage());

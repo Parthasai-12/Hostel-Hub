@@ -49,9 +49,15 @@ const WardenDashboard = ({ onNavigate, onLogout, userName }) => {
     };
 
     const handleStatusUpdate = async (id, newStatus) => {
+        let remarks = "";
+        if (newStatus === 'RESOLVED') {
+            remarks = window.prompt("Enter resolution remarks (this will be emailed to the student):");
+            if (remarks === null) return; // Cancelled by user
+        }
+
         try {
             setUpdatingId(id);
-            await api.put(`/complaints/${id}/status`, { status: newStatus });
+            await api.put(`/complaints/${id}/status`, { status: newStatus, remarks });
             await fetchComplaints();
         } catch (err) {
 // logger removed

@@ -14,6 +14,9 @@ import {
     AlertCircle,
     Shield,
     Users,
+    Trash2,
+    Filter,
+    FileText
 } from 'lucide-react';
 import './AdminDashboard.css';
 
@@ -29,13 +32,70 @@ const AdminDashboard = ({ onNavigate, onLogout, userName }) => {
     const [createWardenSuccess, setCreateWardenSuccess] = useState('');
     const [createWardenError, setCreateWardenError] = useState('');
 
+    const [complaints, setComplaints] = useState([]);
+    const [wardens, setWardens] = useState([]);
+    const [loadingData, setLoadingData] = useState(false);
+    const [statusFilter, setStatusFilter] = useState('');
+    const [categoryFilter, setCategoryFilter] = useState('');
+
     useEffect(() => {
         const role = localStorage.getItem('role');
         if (role !== 'ADMIN') {
-// logger removed
             onLogout();
         }
     }, []);
+
+    useEffect(() => {
+        if (activeMenu === 'all-complaints') fetchComplaints();
+        if (activeMenu === 'manage-wardens') fetchWardens();
+    }, [activeMenu, statusFilter, categoryFilter]);
+
+    const fetchComplaints = async () => {
+        setLoadingData(true);
+        try {
+            const params = {};
+            if (statusFilter) params.status = statusFilter;
+            if (categoryFilter) params.category = categoryFilter;
+            const res = await api.get('/complaints/admin/all', { params });
+            setComplaints(res.data);
+        } catch (err) {
+            console.error('Failed to fetch complaints', err);
+        } finally {
+            setLoadingData(false);
+        }
+    };
+
+    const fetchWardens = async () => {
+        setLoadingData(true);
+        try {
+            const res = await api.get('/api/admin/wardens');
+            setWardens(res.data);
+        } catch (err) {
+            console.error('Failed to fetch wardens', err);
+        } finally {
+            setLoadingData(false);
+        }
+    };
+
+    const handleDeleteComplaint = async (id) => {
+        if (!window.confirm('Are you sure you want to delete this complaint?')) return;
+        try {
+            await api.delete(`/complaints/admin/${id}`);
+            fetchComplaints();
+        } catch (err) {
+            alert('Failed to delete complaint');
+        }
+    };
+
+    const handleRemoveWarden = async (id) => {
+        if (!window.confirm('Are you sure you want to remove this warden?')) return;
+        try {
+            await api.delete(`/api/admin/wardens/${id}`);
+            fetchWardens();
+        } catch (err) {
+            alert('Failed to remove warden');
+        }
+    };
 
     const handleCreateWarden = async (e) => {
         e.preventDefault();
@@ -62,6 +122,8 @@ const AdminDashboard = ({ onNavigate, onLogout, userName }) => {
 
     const menuItems = [
         { id: 'dashboard', label: 'Admin Panel', icon: <LayoutDashboard size={20} /> },
+        { id: 'all-complaints', label: 'All Complaints', icon: <FileText size={20} /> },
+        { id: 'manage-wardens', label: 'Manage Wardens', icon: <Users size={20} /> },
         { id: 'create-warden', label: 'Create New Warden', icon: <UserPlus size={20} /> },
         { id: 'logout', label: 'Logout', icon: <LogOut size={20} /> },
     ];
@@ -263,6 +325,153 @@ const AdminDashboard = ({ onNavigate, onLogout, userName }) => {
         </motion.div>
     );
 
+    const renderAllComplaints = () => (
+        <motion.div
+            className="content-wrapper"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+        >
+            <div className="dashboard-header">
+                <div>
+                    <h1 className="dashboard-title">System Complaints</h1>
+                    <p className="dashboard-subtitle">Monitor all complaints and delete them if necessary</p>
+                </div>
+            </div>
+            
+            <div className="table-card" style={{ marginBottom: '2rem' }}>
+                <div style={{ display: 'flex', gap: '1rem', padding: '1.5rem', background: 'rgba(15, 23, 42, 0.4)', borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                    <div style={{ flex: 1 }}>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: '#94a3b8' }}>Status Filter</label>
+                        <select 
+                            value={statusFilter} 
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', color: 'white' }}
+                        >
+                            <option value="">All Statuses</option>
+                            <option value="PENDING">Pending</option>
+                            <option value="IN_PROGRESS">In Progress</option>
+                            <option value="RESOLVED">Resolved</option>
+                        </select>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: '#94a3b8' }}>Category Filter</label>
+                        <select 
+                            value={categoryFilter} 
+                            onChange={(e) => setCategoryFilter(e.target.value)}
+                            style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', color: 'white' }}
+                        >
+                            <option value="">All Categories</option>
+                            <option value="FOOD">Food</option>
+                            <option value="ELECTRICITY">Electricity</option>
+                            <option value="CLEANLINESS">Cleanliness</option>
+                            <option value="WATER">Water</option>
+                            <option value="INTERNET">Internet</option>
+                            <option value="MAINTENANCE">Maintenance</option>
+                            <option value="OTHER">Other</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div className="table-wrapper">
+                    {loadingData ? (
+                        <div style={{ textAlign: 'center', padding: '2rem' }}>Loading complaints...</div>
+                    ) : complaints.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>No complaints found.</div>
+                    ) : (
+                        <table className="complaints-table" style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Student</th>
+                                    <th>Category</th>
+                                    <th>Title</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {complaints.map(c => (
+                                    <tr key={c.id}>
+                                        <td>#{c.id}</td>
+                                        <td>{c.studentName} {c.roomNumber ? `(${c.roomNumber})` : ''}</td>
+                                        <td>{c.category}</td>
+                                        <td>{c.title}</td>
+                                        <td>
+                                            <span style={{
+                                                padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 600,
+                                                background: c.status === 'RESOLVED' ? 'rgba(16,185,129,0.15)' : c.status === 'IN_PROGRESS' ? 'rgba(234,179,8,0.15)' : 'rgba(100,116,139,0.15)',
+                                                color: c.status === 'RESOLVED' ? '#10b981' : c.status === 'IN_PROGRESS' ? '#eab308' : '#cbd5e1'
+                                            }}>{c.status}</span>
+                                        </td>
+                                        <td>{new Date(c.createdAt).toLocaleDateString()}</td>
+                                        <td>
+                                            <button onClick={() => handleDeleteComplaint(c.id)} style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: 'none', padding: '0.4rem', borderRadius: '6px', cursor: 'pointer' }} title="Delete Complaint">
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
+                </div>
+            </div>
+        </motion.div>
+    );
+
+    const renderManageWardens = () => (
+        <motion.div
+            className="content-wrapper"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+        >
+            <div className="dashboard-header">
+                <div>
+                    <h1 className="dashboard-title">Manage Wardens</h1>
+                    <p className="dashboard-subtitle">View and remove hostel wardens</p>
+                </div>
+            </div>
+            
+            <div className="table-card">
+                <div className="table-wrapper">
+                    {loadingData ? (
+                        <div style={{ textAlign: 'center', padding: '2rem' }}>Loading wardens...</div>
+                    ) : wardens.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>No wardens found.</div>
+                    ) : (
+                        <table className="complaints-table" style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {wardens.map(w => (
+                                    <tr key={w.id}>
+                                        <td>#{w.id}</td>
+                                        <td>{w.name}</td>
+                                        <td>{w.email}</td>
+                                        <td>
+                                            <button onClick={() => handleRemoveWarden(w.id)} style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: 'none', padding: '0.4rem 0.8rem', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                <Trash2 size={16} /> Remove
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
+                </div>
+            </div>
+        </motion.div>
+    );
+
     return (
         <div className="admin-dashboard">
             {/* Mobile Menu Button */}
@@ -313,7 +522,10 @@ const AdminDashboard = ({ onNavigate, onLogout, userName }) => {
 
             {/* Main Content */}
             <main className="main-content">
-                {activeMenu === 'create-warden' ? renderCreateWarden() : renderDashboardHome()}
+                {activeMenu === 'create-warden' ? renderCreateWarden() : 
+                 activeMenu === 'all-complaints' ? renderAllComplaints() :
+                 activeMenu === 'manage-wardens' ? renderManageWardens() : 
+                 renderDashboardHome()}
             </main>
         </div>
     );

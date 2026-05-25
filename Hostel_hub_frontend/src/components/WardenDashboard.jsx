@@ -166,6 +166,7 @@ const WardenDashboard = ({ onNavigate, onLogout, userName }) => {
                                         <th style={{ whiteSpace: 'nowrap' }}>Room No</th>
                                         <th>Issue</th>
                                         <th>Description</th>
+                                        <th style={{ textAlign: 'center' }}>Affected</th>
                                         <th>Date</th>
                                         <th>Status</th>
                                         <th>Action</th>
@@ -179,6 +180,13 @@ const WardenDashboard = ({ onNavigate, onLogout, userName }) => {
                                             <td style={{ whiteSpace: 'nowrap' }}>{complaint.roomNumber || 'N/A'}</td>
                                             <td>{complaint.title}</td>
                                             <td className="description-cell" title={complaint.description}>{complaint.description}</td>
+                                            <td style={{ 
+                                                textAlign: 'center', 
+                                                fontWeight: '700', 
+                                                color: (complaint.duplicateCount > 1) ? '#fb923c' : 'var(--text-secondary)' 
+                                            }}>
+                                                {complaint.duplicateCount || 1}
+                                            </td>
                                             <td>
                                                 {complaint.createdAt
                                                     ? new Date(complaint.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })

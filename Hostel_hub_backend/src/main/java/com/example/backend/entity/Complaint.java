@@ -30,13 +30,29 @@ public class Complaint {
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id", nullable = false)
     @JsonIgnore
     private User user;
 
     @Column(length = 500)
     private String imageUrl;
+
+    @Column(name = "duplicate_count", nullable = false)
+    private Integer duplicateCount = 1;
+
+    @Lob
+    @Column(name = "embedding", columnDefinition = "TEXT")
+    @JsonIgnore
+    private String embedding;
+
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+        name = "complaint_affected_students",
+        joinColumns = @JoinColumn(name = "complaint_id"),
+        inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    private java.util.List<User> affectedStudents = new java.util.ArrayList<>();
 
     // Constructors, getters, setters
 
@@ -75,6 +91,15 @@ public class Complaint {
 
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+
+    public Integer getDuplicateCount() { return duplicateCount; }
+    public void setDuplicateCount(Integer duplicateCount) { this.duplicateCount = duplicateCount; }
+
+    public String getEmbedding() { return embedding; }
+    public void setEmbedding(String embedding) { this.embedding = embedding; }
+
+    public java.util.List<User> getAffectedStudents() { return affectedStudents; }
+    public void setAffectedStudents(java.util.List<User> affectedStudents) { this.affectedStudents = affectedStudents; }
 
     @JsonProperty("studentName")
     public String getStudentName() {

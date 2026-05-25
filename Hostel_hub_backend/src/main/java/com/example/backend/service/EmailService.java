@@ -34,6 +34,7 @@ public class EmailService {
         String body = "Your OTP for Hostel Registration is: " + otp + "\n" +
                 "This code is valid for 5 minutes. Please do not share this code with anyone.";
 
+        log.info("[CONSOLE FALLBACK] OTP for {} -> {}", to, otp);
         if (mailSender != null) {
             try {
                 SimpleMailMessage message = new SimpleMailMessage();
@@ -45,12 +46,10 @@ public class EmailService {
                 log.info("[EmailService] OTP sent successfully to {}", to);
             } catch (Exception e) {
                 log.error("[EmailService] FAILED to send OTP to {}. Error: {}", to, e.getMessage());
-                log.info("[CONSOLE FALLBACK] OTP for {} -> {}", to, otp);
                 throw new RuntimeException("Failed to send OTP email. Please check your mail configuration.", e);
             }
         } else {
             log.warn("[EmailService] JavaMailSender not available — console fallback mode");
-            log.info("[FALLBACK] OTP for {} -> {}", to, otp);
         }
     }
 
@@ -60,12 +59,27 @@ public class EmailService {
     @Async
     public void sendResolutionEmail(Complaint complaint, String remarks) {
         if (mailSender == null) {
-            log.warn("[EmailService] JavaMailSender not available — skipping resolution email for complaint id={}", complaint.getId());
+            log.warn("[EmailService] JavaMailSender not available — skipping resolution emails for complaint id={}", complaint.getId());
             return;
         }
 
-        String studentEmail = complaint.getUser().getEmail();
-        String studentName  = complaint.getUser().getName();
+        log.info("[EmailService] Sending resolution emails for complaint id={} (reporter + {} affected students)", 
+            complaint.getId(), complaint.getAffectedStudents() != null ? complaint.getAffectedStudents().size() : 0);
+
+        // 1. Send to the original reporter
+        sendSingleResolutionEmail(complaint, complaint.getUser(), remarks);
+
+        // 2. Send to all affected students who were grouped
+        if (complaint.getAffectedStudents() != null) {
+            for (com.example.backend.entity.User student : complaint.getAffectedStudents()) {
+                sendSingleResolutionEmail(complaint, student, remarks);
+            }
+        }
+    }
+
+    private void sendSingleResolutionEmail(Complaint complaint, com.example.backend.entity.User student, String remarks) {
+        String studentEmail = student.getEmail();
+        String studentName  = student.getName();
         String category     = complaint.getCategory() != null ? complaint.getCategory().name() : "General";
         String resolvedOn   = complaint.getCreatedAt() != null
                 ? complaint.getCreatedAt().format(DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a"))
@@ -89,7 +103,6 @@ public class EmailService {
         } catch (MessagingException e) {
             log.error("[EmailService] Failed to send resolution email to {} for complaint id={}. Error: {}",
                     studentEmail, complaint.getId(), e.getMessage());
-            // @Async — do NOT rethrow; warden's response must not be affected
         }
     }
 

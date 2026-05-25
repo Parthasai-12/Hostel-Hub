@@ -1,0 +1,8 @@
+# Ignore Python virtual environment created for embedding service
+embedding_service/venv/
+
+# Ignore common Python cache files
+**/__pycache__/
+*.py[cod]
+*.pyo
+*.pyd

@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import com.example.backend.service.EmailProducer;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -25,6 +26,9 @@ public class ComplaintService {
 
     @Autowired
     private EmailService emailService;
+
+    @Autowired
+    private EmailProducer emailProducer;
 
     @Autowired
     private EmbeddingService embeddingService;
@@ -255,7 +259,31 @@ public class ComplaintService {
         // Trigger resolution email ONLY when transitioning TO RESOLVED (prevents duplicate emails)
         if (newStatus == Complaint.Status.RESOLVED && previousStatus != Complaint.Status.RESOLVED) {
             log.info("[ComplaintService] Triggering async resolution email for complaint id={}", id);
-            emailService.sendResolutionEmail(saved, remarks);
+            
+            java.util.List<com.example.backend.dto.RecipientInfo> recipients = new java.util.ArrayList<>();
+            if (saved.getUser() != null) {
+                recipients.add(new com.example.backend.dto.RecipientInfo(saved.getUser().getEmail(), saved.getUser().getName()));
+            }
+            if (saved.getAffectedStudents() != null) {
+                for (User student : saved.getAffectedStudents()) {
+                    recipients.add(new com.example.backend.dto.RecipientInfo(student.getEmail(), student.getName()));
+                }
+            }
+            
+            String resolvedOn = saved.getCreatedAt() != null
+                    ? saved.getCreatedAt().format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a"))
+                    : "N/A";
+            
+            com.example.backend.dto.ComplaintResolvedEvent event = new com.example.backend.dto.ComplaintResolvedEvent(
+                saved.getId(),
+                saved.getTitle(),
+                saved.getCategory() != null ? saved.getCategory().name() : "General",
+                resolvedOn,
+                remarks,
+                recipients
+            );
+            
+            emailProducer.publishComplaintResolvedEvent(event);
         }
 
         return saved;

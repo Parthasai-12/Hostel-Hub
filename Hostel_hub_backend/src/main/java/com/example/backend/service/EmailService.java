@@ -56,7 +56,6 @@ public class EmailService {
     // -------------------------------------------------------------------------
     // Resolution Notification Email (new — Feature 3)
     // -------------------------------------------------------------------------
-    @Async
     public void sendResolutionEmail(Complaint complaint, String remarks) {
         if (mailSender == null) {
             log.warn("[EmailService] JavaMailSender not available — skipping resolution emails for complaint id={}", complaint.getId());
@@ -74,6 +73,50 @@ public class EmailService {
             for (com.example.backend.entity.User student : complaint.getAffectedStudents()) {
                 sendSingleResolutionEmail(complaint, student, remarks);
             }
+        }
+    }
+
+    public void sendResolutionEmailFromEvent(com.example.backend.dto.ComplaintResolvedEvent event) {
+        if (mailSender == null) {
+            log.warn("[EmailService] JavaMailSender not available — skipping resolution emails from event for complaint id={}", event.getComplaintId());
+            return;
+        }
+
+        log.info("[EmailService] Sending resolution emails from event for complaint id={} to {} recipients", 
+            event.getComplaintId(), event.getRecipients() != null ? event.getRecipients().size() : 0);
+
+        if (event.getRecipients() != null) {
+            for (com.example.backend.dto.RecipientInfo recipient : event.getRecipients()) {
+                sendSingleResolutionEmailFromEvent(event, recipient);
+            }
+        }
+    }
+
+    private void sendSingleResolutionEmailFromEvent(com.example.backend.dto.ComplaintResolvedEvent event, com.example.backend.dto.RecipientInfo recipient) {
+        String studentEmail = recipient.getEmail();
+        String studentName  = recipient.getName();
+        String category     = event.getCategory() != null ? event.getCategory() : "General";
+        String resolvedOn   = event.getResolvedOn() != null ? event.getResolvedOn() : "N/A";
+        String remarksHtml  = (event.getRemarks() != null && !event.getRemarks().isBlank())
+                ? event.getRemarks()
+                : "Your complaint has been reviewed and resolved by the warden.";
+
+        String htmlBody = buildResolutionHtml(studentName, event.getTitle(), category,
+                String.valueOf(event.getComplaintId()), remarksHtml, resolvedOn);
+
+        try {
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+            helper.setFrom(fromEmail);
+            helper.setTo(studentEmail);
+            helper.setSubject("✅ Your Complaint Has Been Resolved — HostelHub");
+            helper.setText(htmlBody, true); // true = isHtml
+            mailSender.send(mimeMessage);
+            log.info("[EmailService] Resolution email sent to {} for complaint id={}", studentEmail, event.getComplaintId());
+        } catch (Exception e) {
+            log.error("[EmailService] Failed to send resolution email to {} for complaint id={}. Error: {}",
+                    studentEmail, event.getComplaintId(), e.getMessage());
+            throw new RuntimeException("Failed to send email to " + studentEmail, e);
         }
     }
 

@@ -69,4 +69,21 @@ public class AdminController {
             return ResponseEntity.badRequest().body(errorResponse);
         }
     }
+
+    @Autowired
+    private com.example.backend.service.EmailMonitoringService emailMonitoringService;
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/email-monitoring/failed-count")
+    public ResponseEntity<?> getFailedEmailCount() {
+        Map<String, Object> response = new HashMap<>();
+        response.put("failedCount", emailMonitoringService.getFailedEmailCount());
+        return ResponseEntity.ok(response);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/email-monitoring/dlq-entries")
+    public ResponseEntity<?> getDlqEntries(@RequestParam(defaultValue = "50") int limit) {
+        return ResponseEntity.ok(emailMonitoringService.getDeadLetterQueueEntries(limit));
+    }
 }

@@ -6,7 +6,8 @@ import com.example.backend.dto.ResetPasswordRequest;
 import com.example.backend.entity.User;
 import com.example.backend.service.AuthService;
 import com.example.backend.service.OtpService;
-import com.example.backend.service.EmailService;
+import com.example.backend.service.EmailProducer;
+import com.example.backend.dto.OtpEmailEvent;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -27,7 +28,7 @@ public class AuthController {
     private OtpService otpService;
 
     @Autowired
-    private EmailService emailService;
+    private EmailProducer emailProducer;
 
     @PostMapping("/send-otp")
     public ResponseEntity<Map<String, String>> sendOtp(@RequestBody Map<String, String> request) {
@@ -36,7 +37,7 @@ public class AuthController {
             throw new IllegalArgumentException("Email is required");
         }
         String otp = otpService.generateOtp(email);
-        emailService.sendVerificationOtp(email, otp);
+        emailProducer.publishOtpEvent(new OtpEmailEvent(email, otp));
 
         Map<String, String> response = new HashMap<>();
         response.put("message", "OTP sent successfully");
@@ -150,7 +151,7 @@ public class AuthController {
         authService.validateUserExists(email);
         
         String otp = otpService.generateOtp(email);
-        emailService.sendVerificationOtp(email, otp);
+        emailProducer.publishOtpEvent(new OtpEmailEvent(email, otp));
 
         Map<String, String> response = new HashMap<>();
         response.put("message", "OTP sent successfully");

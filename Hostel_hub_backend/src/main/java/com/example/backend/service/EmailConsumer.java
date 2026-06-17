@@ -2,6 +2,7 @@ package com.example.backend.service;
 
 import com.example.backend.config.RabbitMQConfig;
 import com.example.backend.dto.ComplaintResolvedEvent;
+import com.example.backend.dto.ComplaintStatusUpdateEvent;
 import com.example.backend.dto.OtpEmailEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +41,19 @@ public class EmailConsumer {
             log.info("[EmailConsumer] Successfully processed ComplaintResolvedEvent for complaint ID: {}", event.getComplaintId());
         } catch (Exception e) {
             log.error("[EmailConsumer] Failed to send complaint resolution email for ID {}. Error: {}", event.getComplaintId(), e.getMessage());
+            // Rethrow exception to trigger spring-amqp listener retry and eventual DLQ routing
+            throw e;
+        }
+    }
+
+    @RabbitHandler
+    public void consumeComplaintStatusUpdateEvent(ComplaintStatusUpdateEvent event) {
+        log.info("[EmailConsumer] Consuming ComplaintStatusUpdateEvent for complaint ID: {}", event.getComplaintId());
+        try {
+            emailService.sendStatusUpdateEmail(event);
+            log.info("[EmailConsumer] Successfully processed ComplaintStatusUpdateEvent for complaint ID: {}", event.getComplaintId());
+        } catch (Exception e) {
+            log.error("[EmailConsumer] Failed to send complaint status update email for ID {}. Error: {}", event.getComplaintId(), e.getMessage());
             // Rethrow exception to trigger spring-amqp listener retry and eventual DLQ routing
             throw e;
         }

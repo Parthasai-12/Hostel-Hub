@@ -73,4 +73,25 @@ public class RabbitMQConfig {
     public RabbitAdmin rabbitAdmin(ConnectionFactory connectionFactory) {
         return new RabbitAdmin(connectionFactory);
     }
+
+    @Bean
+    public org.springframework.amqp.rabbit.retry.MessageRecoverer messageRecoverer(RabbitTemplate rabbitTemplate) {
+        return new org.springframework.amqp.rabbit.retry.RepublishMessageRecoverer(rabbitTemplate, DLX_NAME, DLQ_ROUTING_KEY) {
+            private final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger("DLQ-Logger");
+            
+            @Override
+            public void recover(org.springframework.amqp.core.Message message, Throwable cause) {
+                logger.warn("[DLQ] Message processing failed after retries. Routing to DLQ. Payload: {}, Reason: {}", 
+                    new String(message.getBody(), java.nio.charset.StandardCharsets.UTF_8), cause.getMessage());
+                super.recover(message, cause);
+            }
+            
+            @Override
+            protected Map<String, Object> additionalHeaders(org.springframework.amqp.core.Message message, Throwable cause) {
+                Map<String, Object> headers = new HashMap<>();
+                headers.put("x-failed-timestamp", System.currentTimeMillis());
+                return headers;
+            }
+        };
+    }
 }

@@ -248,18 +248,22 @@ const StudentDashboard = ({ onNavigate, complaints, onLogout, initialView = 'das
                                         <thead>
                                             <tr>
                                                 <th>Issue</th>
+                                                <th>Category</th>
                                                 <th style={{ whiteSpace: 'nowrap' }}>Room No</th>
                                                 <th>Description</th>
                                                 <th>Image</th>
-                                                <th>Date</th>
+                                                <th>Created Date</th>
+                                                <th>Updated Date</th>
+                                                <th>Expected Completion</th>
+                                                <th>Latest Message</th>
                                                 <th>Status</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {isLoading ? (
-                                                <tr><td colSpan="5" style={{ textAlign: 'center', padding: '2rem' }}>Loading complaints...</td></tr>
+                                                <tr><td colSpan="10" style={{ textAlign: 'center', padding: '2rem' }}>Loading complaints...</td></tr>
                                             ) : realComplaints.length === 0 ? (
-                                                <tr><td colSpan="5" style={{ textAlign: 'center', padding: '2rem' }}>No complaints found.</td></tr>
+                                                <tr><td colSpan="10" style={{ textAlign: 'center', padding: '2rem' }}>No complaints found.</td></tr>
                                             ) : (
                                                 realComplaints.slice(0, 5).map((complaint, index) => (
                                                     <motion.tr
@@ -270,6 +274,11 @@ const StudentDashboard = ({ onNavigate, complaints, onLogout, initialView = 'das
                                                         whileHover={{ backgroundColor: '#f9fafb' }}
                                                     >
                                                         <td className="issue-cell">{complaint.title}</td>
+                                                        <td className="category-cell">
+                                                            <span className="category-text">
+                                                                {complaint.category ? complaint.category.charAt(0) + complaint.category.slice(1).toLowerCase() : 'N/A'}
+                                                            </span>
+                                                        </td>
                                                         <td className="room-cell" style={{ whiteSpace: 'nowrap' }}>{complaint.roomNumber || 'N/A'}</td>
                                                         <td className="description-cell">{complaint.description}</td>
                                                         <td className="image-cell">
@@ -296,6 +305,23 @@ const StudentDashboard = ({ onNavigate, complaints, onLogout, initialView = 'das
                                                                 month: 'short',
                                                                 year: 'numeric'
                                                             }) : 'N/A'}
+                                                        </td>
+                                                        <td className="date-cell">
+                                                            {complaint.updatedAt ? new Date(complaint.updatedAt).toLocaleDateString('en-GB', {
+                                                                day: '2-digit',
+                                                                month: 'short',
+                                                                year: 'numeric'
+                                                            }) : 'N/A'}
+                                                        </td>
+                                                        <td className="expected-cell">
+                                                            {complaint.expectedCompletionDate ? new Date(complaint.expectedCompletionDate).toLocaleDateString('en-GB', {
+                                                                day: '2-digit',
+                                                                month: 'short',
+                                                                year: 'numeric'
+                                                            }) : 'N/A'}
+                                                        </td>
+                                                        <td className="message-cell" style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={complaint.progressMessage}>
+                                                            {complaint.progressMessage || 'No updates yet'}
                                                         </td>
                                                         <td className="status-cell">
                                                             <span className={`status-badge ${getStatusClass(complaint.status)}`}>
@@ -347,18 +373,22 @@ const StudentDashboard = ({ onNavigate, complaints, onLogout, initialView = 'das
                                         <thead>
                                             <tr>
                                                 <th>Issue</th>
+                                                <th>Category</th>
                                                 <th style={{ whiteSpace: 'nowrap' }}>Room No</th>
                                                 <th>Description</th>
                                                 <th>Image</th>
-                                                <th>Date</th>
+                                                <th>Created Date</th>
+                                                <th>Updated Date</th>
+                                                <th>Expected Completion</th>
+                                                <th>Latest Message</th>
                                                 <th>Status</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {isLoading ? (
-                                                <tr><td colSpan="5" style={{ textAlign: 'center', padding: '2rem' }}>Loading complaints...</td></tr>
+                                                <tr><td colSpan="10" style={{ textAlign: 'center', padding: '2rem' }}>Loading complaints...</td></tr>
                                             ) : realComplaints.length === 0 ? (
-                                                <tr><td colSpan="5" style={{ textAlign: 'center', padding: '2rem' }}>No complaints found.</td></tr>
+                                                <tr><td colSpan="10" style={{ textAlign: 'center', padding: '2rem' }}>No complaints found.</td></tr>
                                             ) : (
                                                 realComplaints.map((complaint, index) => (
                                                     <motion.tr
@@ -369,6 +399,11 @@ const StudentDashboard = ({ onNavigate, complaints, onLogout, initialView = 'das
                                                         whileHover={{ backgroundColor: '#f9fafb' }}
                                                     >
                                                         <td className="issue-cell">{complaint.title}</td>
+                                                        <td className="category-cell">
+                                                            <span className="category-text">
+                                                                {complaint.category ? complaint.category.charAt(0) + complaint.category.slice(1).toLowerCase() : 'N/A'}
+                                                            </span>
+                                                        </td>
                                                         <td className="room-cell" style={{ whiteSpace: 'nowrap' }}>{complaint.roomNumber || 'N/A'}</td>
                                                         <td className="description-cell">{complaint.description}</td>
                                                         <td className="image-cell">
@@ -395,6 +430,23 @@ const StudentDashboard = ({ onNavigate, complaints, onLogout, initialView = 'das
                                                                 month: 'short',
                                                                 year: 'numeric'
                                                             }) : 'N/A'}
+                                                        </td>
+                                                        <td className="date-cell">
+                                                            {complaint.updatedAt ? new Date(complaint.updatedAt).toLocaleDateString('en-GB', {
+                                                                day: '2-digit',
+                                                                month: 'short',
+                                                                year: 'numeric'
+                                                            }) : 'N/A'}
+                                                        </td>
+                                                        <td className="expected-cell">
+                                                            {complaint.expectedCompletionDate ? new Date(complaint.expectedCompletionDate).toLocaleDateString('en-GB', {
+                                                                day: '2-digit',
+                                                                month: 'short',
+                                                                year: 'numeric'
+                                                            }) : 'N/A'}
+                                                        </td>
+                                                        <td className="message-cell" style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={complaint.progressMessage}>
+                                                            {complaint.progressMessage || 'No updates yet'}
                                                         </td>
                                                         <td className="status-cell">
                                                             <span className={`status-badge ${getStatusClass(complaint.status)}`}>

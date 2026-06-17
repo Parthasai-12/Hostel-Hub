@@ -1,0 +1,9 @@
+venv
+.venv
+__pycache__
+*.pyc
+*.pyo
+.idea
+.vscode
+.git
+start_embedding_service.bat

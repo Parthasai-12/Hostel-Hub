@@ -6,3 +6,10 @@ embedding_service/venv/
 *.py[cod]
 *.pyo
 *.pyd
+
+# Environment Variables & Secrets
+.env
+.env.local
+.env.*.local
+*.env
+

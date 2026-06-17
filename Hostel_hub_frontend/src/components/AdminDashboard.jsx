@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import api from '../services/api';
+import api, { BASE_URL } from '../services/api';
 import {
     LayoutDashboard,
     LogOut,
@@ -34,6 +34,10 @@ const AdminDashboard = ({ onNavigate, onLogout, userName }) => {
 
     const [complaints, setComplaints] = useState([]);
     const [wardens, setWardens] = useState([]);
+    const [failedEmails, setFailedEmails] = useState([]);
+    const [loadingEmails, setLoadingEmails] = useState(false);
+    const [resendingId, setResendingId] = useState(null);
+    const [selectedEmail, setSelectedEmail] = useState(null);
     const [loadingData, setLoadingData] = useState(false);
     const [statusFilter, setStatusFilter] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('');
@@ -48,6 +52,7 @@ const AdminDashboard = ({ onNavigate, onLogout, userName }) => {
     useEffect(() => {
         if (activeMenu === 'all-complaints') fetchComplaints();
         if (activeMenu === 'manage-wardens') fetchWardens();
+        if (activeMenu === 'failed-emails') fetchFailedEmails();
     }, [activeMenu, statusFilter, categoryFilter]);
 
     const fetchComplaints = async () => {
@@ -74,6 +79,41 @@ const AdminDashboard = ({ onNavigate, onLogout, userName }) => {
             console.error('Failed to fetch wardens', err);
         } finally {
             setLoadingData(false);
+        }
+    };
+
+    const fetchFailedEmails = async () => {
+        setLoadingEmails(true);
+        try {
+            const res = await api.get('/api/admin/email-monitoring/dlq-messages');
+            setFailedEmails(res.data);
+        } catch (err) {
+            console.error('Failed to fetch failed emails', err);
+        } finally {
+            setLoadingEmails(false);
+        }
+    };
+
+    const handleResendFailedEmail = async (messageId) => {
+        setResendingId(messageId);
+        try {
+            await api.post(`/api/admin/email-monitoring/dlq-messages/${messageId}/resend`);
+            alert('Email resend successfully initiated!');
+            fetchFailedEmails();
+        } catch (err) {
+            console.error('Failed to resend email', err);
+            const msg = err.response?.data?.message || 'Failed to resend email.';
+            alert(msg);
+        } finally {
+            setResendingId(null);
+        }
+    };
+
+    const getFormattedPayload = (payload) => {
+        try {
+            return JSON.stringify(JSON.parse(payload), null, 2);
+        } catch (e) {
+            return payload;
         }
     };
 
@@ -124,6 +164,7 @@ const AdminDashboard = ({ onNavigate, onLogout, userName }) => {
         { id: 'dashboard', label: 'Admin Panel', icon: <LayoutDashboard size={20} /> },
         { id: 'all-complaints', label: 'All Complaints', icon: <FileText size={20} /> },
         { id: 'manage-wardens', label: 'Manage Wardens', icon: <Users size={20} /> },
+        { id: 'failed-emails', label: 'Failed Emails', icon: <Mail size={20} /> },
         { id: 'create-warden', label: 'Create New Warden', icon: <UserPlus size={20} /> },
         { id: 'logout', label: 'Logout', icon: <LogOut size={20} /> },
     ];
@@ -382,22 +423,44 @@ const AdminDashboard = ({ onNavigate, onLogout, userName }) => {
                         <table className="complaints-table" style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr>
+                                    <th>S.No</th>
                                     <th>ID</th>
                                     <th>Student</th>
                                     <th>Category</th>
                                     <th>Title</th>
+                                    <th>Image</th>
                                     <th>Status</th>
                                     <th>Date</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {complaints.map(c => (
+                                {complaints.map((c, index) => (
                                     <tr key={c.id}>
+                                        <td>{index + 1}</td>
                                         <td>#{c.id}</td>
                                         <td>{c.studentName} {c.roomNumber ? `(${c.roomNumber})` : ''}</td>
                                         <td>{c.category}</td>
                                         <td>{c.title}</td>
+                                        <td className="image-cell">
+                                            {c.imageUrl ? (
+                                                <img 
+                                                    src={`${BASE_URL}${c.imageUrl}`} 
+                                                    alt="Complaint" 
+                                                    className="complaint-image-preview"
+                                                    style={{ 
+                                                        width: '50px', 
+                                                        height: '50px', 
+                                                        objectFit: 'cover', 
+                                                        borderRadius: '4px',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                    onClick={() => window.open(`${BASE_URL}${c.imageUrl}`, '_blank')}
+                                                />
+                                            ) : (
+                                                <span style={{ color: '#94a3b8', fontSize: '0.875rem' }}>No image</span>
+                                            )}
+                                        </td>
                                         <td>
                                             <span style={{
                                                 padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 600,
@@ -445,6 +508,7 @@ const AdminDashboard = ({ onNavigate, onLogout, userName }) => {
                         <table className="complaints-table" style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr>
+                                    <th>S.No</th>
                                     <th>ID</th>
                                     <th>Name</th>
                                     <th>Email</th>
@@ -452,8 +516,9 @@ const AdminDashboard = ({ onNavigate, onLogout, userName }) => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {wardens.map(w => (
+                                {wardens.map((w, index) => (
                                     <tr key={w.id}>
+                                        <td>{index + 1}</td>
                                         <td>#{w.id}</td>
                                         <td>{w.name}</td>
                                         <td>{w.email}</td>
@@ -469,6 +534,126 @@ const AdminDashboard = ({ onNavigate, onLogout, userName }) => {
                     )}
                 </div>
             </div>
+        </motion.div>
+    );
+
+    const renderFailedEmails = () => (
+        <motion.div
+            className="content-wrapper"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+        >
+            <div className="dashboard-header">
+                <div>
+                    <h1 className="dashboard-title">Failed Email Notifications</h1>
+                    <p className="dashboard-subtitle">Monitor and resend failed email notifications from the DLQ</p>
+                </div>
+            </div>
+
+            <div className="table-card">
+                <div className="table-wrapper">
+                    {loadingEmails ? (
+                        <div style={{ textAlign: 'center', padding: '2rem' }}>Loading failed emails...</div>
+                    ) : failedEmails.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>No failed email notifications found.</div>
+                    ) : (
+                        <table className="complaints-table" style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+                            <thead>
+                                <tr>
+                                    <th>S.No</th>
+                                    <th>Recipient</th>
+                                    <th>Type</th>
+                                    <th>Failure Reason</th>
+                                    <th>Timestamp</th>
+                                    <th>Retries</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {failedEmails.map((email, index) => (
+                                    <tr key={email.messageId}>
+                                        <td>{index + 1}</td>
+                                        <td style={{ wordBreak: 'break-all' }}>{email.emailRecipient}</td>
+                                        <td>
+                                            <span style={{
+                                                padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 600,
+                                                background: email.emailType === 'OTP' ? 'rgba(59, 130, 246, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                                                color: email.emailType === 'OTP' ? '#3B82F6' : '#10b981'
+                                            }}>{email.emailType}</span>
+                                        </td>
+                                        <td style={{ maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={email.failureReason}>
+                                            {email.failureReason}
+                                        </td>
+                                        <td>{new Date(email.failedTimestamp).toLocaleString()}</td>
+                                        <td>{email.retryCount}</td>
+                                        <td>
+                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                <button
+                                                    onClick={() => setSelectedEmail(email)}
+                                                    style={{ background: 'rgba(102, 126, 234, 0.1)', color: '#667eea', border: 'none', padding: '0.4rem 0.8rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem' }}
+                                                >
+                                                    View Details
+                                                </button>
+                                                <button
+                                                    onClick={() => handleResendFailedEmail(email.messageId)}
+                                                    disabled={resendingId === email.messageId}
+                                                    style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: 'none', padding: '0.4rem 0.8rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', opacity: resendingId === email.messageId ? 0.5 : 1 }}
+                                                >
+                                                    {resendingId === email.messageId ? 'Resending...' : 'Resend'}
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
+                </div>
+            </div>
+
+            {/* Modal for Details */}
+            {selectedEmail && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+                    <motion.div 
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="table-card" 
+                        style={{ width: '100%', maxWidth: '600px', display: 'flex', flexDirection: 'column', maxHeight: '80vh' }}
+                    >
+                        <div className="table-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.5rem', borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                            <h3 className="table-title">Failed Email Details</h3>
+                            <button onClick={() => setSelectedEmail(null)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}>
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div style={{ padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem', color: 'var(--text-secondary)' }}>
+                            <div>
+                                <strong style={{ color: '#e2e8f0' }}>Message ID:</strong>
+                                <div style={{ background: 'rgba(0,0,0,0.2)', padding: '0.5rem', borderRadius: '4px', fontFamily: 'monospace', fontSize: '0.85rem', marginTop: '0.25rem', wordBreak: 'break-all' }}>{selectedEmail.messageId}</div>
+                            </div>
+                            <div>
+                                <strong style={{ color: '#e2e8f0' }}>Recipient:</strong>
+                                <div style={{ marginTop: '0.25rem', wordBreak: 'break-all' }}>{selectedEmail.emailRecipient}</div>
+                            </div>
+                            <div>
+                                <strong style={{ color: '#e2e8f0' }}>Email Type:</strong>
+                                <div style={{ marginTop: '0.25rem' }}>{selectedEmail.emailType}</div>
+                            </div>
+                            <div>
+                                <strong style={{ color: '#e2e8f0' }}>Failure Reason:</strong>
+                                <div style={{ background: 'rgba(239, 68, 68, 0.05)', borderLeft: '4px solid #ef4444', padding: '0.75rem', borderRadius: '4px', color: '#fca5a5', fontSize: '0.9rem', marginTop: '0.25rem', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{selectedEmail.failureReason}</div>
+                            </div>
+                            <div>
+                                <strong style={{ color: '#e2e8f0' }}>Message Payload:</strong>
+                                <pre style={{ background: 'rgba(0,0,0,0.3)', padding: '0.75rem', borderRadius: '6px', fontFamily: 'monospace', fontSize: '0.85rem', color: '#a7f3d0', overflowX: 'auto', marginTop: '0.25rem', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                                    {getFormattedPayload(selectedEmail.messagePayload)}
+                                </pre>
+                            </div>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
         </motion.div>
     );
 
@@ -525,6 +710,7 @@ const AdminDashboard = ({ onNavigate, onLogout, userName }) => {
                 {activeMenu === 'create-warden' ? renderCreateWarden() : 
                  activeMenu === 'all-complaints' ? renderAllComplaints() :
                  activeMenu === 'manage-wardens' ? renderManageWardens() : 
+                 activeMenu === 'failed-emails' ? renderFailedEmails() :
                  renderDashboardHome()}
             </main>
         </div>

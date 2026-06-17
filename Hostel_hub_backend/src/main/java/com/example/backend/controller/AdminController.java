@@ -86,4 +86,35 @@ public class AdminController {
     public ResponseEntity<?> getDlqEntries(@RequestParam(defaultValue = "50") int limit) {
         return ResponseEntity.ok(emailMonitoringService.getDeadLetterQueueEntries(limit));
     }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/email-monitoring/dlq-messages")
+    public ResponseEntity<?> getDlqMessages(@RequestParam(defaultValue = "50") int limit) {
+        return ResponseEntity.ok(emailMonitoringService.getFailedEmails(limit));
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/email-monitoring/dlq-messages/{messageId}")
+    public ResponseEntity<?> getDlqMessageDetails(@PathVariable String messageId) {
+        com.example.backend.dto.FailedEmailInfo details = emailMonitoringService.getFailedEmailDetails(messageId);
+        if (details != null) {
+            return ResponseEntity.ok(details);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/email-monitoring/dlq-messages/{messageId}/resend")
+    public ResponseEntity<?> resendFailedMessage(@PathVariable String messageId) {
+        boolean success = emailMonitoringService.resendFailedEmail(messageId);
+        Map<String, Object> response = new HashMap<>();
+        if (success) {
+            response.put("message", "Message resend successfully initiated");
+            return ResponseEntity.ok(response);
+        } else {
+            response.put("message", "Failed to find or resend message");
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
 }

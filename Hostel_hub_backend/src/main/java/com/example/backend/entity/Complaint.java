@@ -54,6 +54,18 @@ public class Complaint {
     )
     private java.util.List<User> affectedStudents = new java.util.ArrayList<>();
 
+    @Column(name = "estimated_resolution_days")
+    private Integer estimatedResolutionDays;
+
+    @Column(name = "expected_completion_date")
+    private java.time.LocalDate expectedCompletionDate;
+
+    @Column(name = "progress_message", length = 1000)
+    private String progressMessage;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
     // Constructors, getters, setters
 
     public Complaint() {}
@@ -100,6 +112,18 @@ public class Complaint {
 
     public java.util.List<User> getAffectedStudents() { return affectedStudents; }
     public void setAffectedStudents(java.util.List<User> affectedStudents) { this.affectedStudents = affectedStudents; }
+
+    public Integer getEstimatedResolutionDays() { return estimatedResolutionDays; }
+    public void setEstimatedResolutionDays(Integer estimatedResolutionDays) { this.estimatedResolutionDays = estimatedResolutionDays; }
+
+    public java.time.LocalDate getExpectedCompletionDate() { return expectedCompletionDate; }
+    public void setExpectedCompletionDate(java.time.LocalDate expectedCompletionDate) { this.expectedCompletionDate = expectedCompletionDate; }
+
+    public String getProgressMessage() { return progressMessage; }
+    public void setProgressMessage(String progressMessage) { this.progressMessage = progressMessage; }
+
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 
     @JsonProperty("studentName")
     public String getStudentName() {

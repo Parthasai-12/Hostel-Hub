@@ -26,6 +26,9 @@ public class DataInitializer implements CommandLineRunner {
     @Autowired
     private EmbeddingService embeddingService;
 
+    @Value("${complaint.similarity.threshold:0.75}")
+    private double similarityThreshold;
+
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     @Override
@@ -80,67 +83,78 @@ public class DataInitializer implements CommandLineRunner {
                 System.out.println("[DataInitializer] Found " + missingCount + " existing complaints with missing embeddings. Generating...");
                 for (Complaint complaint : allComplaints) {
                     if (complaint.getEmbedding() == null) {
-                        String normalized = com.example.backend.util.EmbeddingUtil.normalizeText(complaint.getDescription());
-                        float[] embedding = embeddingService.getEmbedding(normalized);
-                        if (embedding != null) {
-                            complaint.setEmbedding(com.example.backend.util.EmbeddingUtil.serializeEmbedding(embedding));
-                            complaintRepository.save(complaint);
-                            System.out.println("[DataInitializer] Generated embedding for complaint #" + complaint.getId());
-                        }
-                    }
-                }
-                System.out.println("[DataInitializer] Completed embedding initialization for existing complaints.");
-            }
-
-            // Perform retroactive deduplication for UNRESOLVED complaints
-            // Refresh list from database to ensure embeddings are loaded
-            java.util.List<Complaint> unresolved = complaintRepository.findAll().stream()
-                .filter(c -> c.getStatus() != Complaint.Status.RESOLVED)
-                .collect(java.util.stream.Collectors.toList());
-
-            double threshold = 0.70;
-            System.out.println("[DataInitializer] Scanning " + unresolved.size() + " unresolved complaints for retroactive semantic duplicates...");
-
-            boolean changed = false;
-            for (int i = 0; i < unresolved.size(); i++) {
-                Complaint master = unresolved.get(i);
-                if (master.getId() == null) continue; // Already merged
-
-                String masterBlock = com.example.backend.util.EmbeddingUtil.extractBlock(master.getRoomNumber());
-                float[] masterEmbedding = com.example.backend.util.EmbeddingUtil.deserializeEmbedding(master.getEmbedding());
-                if (masterEmbedding == null) continue;
-
-                for (int j = i + 1; j < unresolved.size(); j++) {
-                    Complaint duplicate = unresolved.get(j);
-                    if (duplicate.getId() == null) continue; // Already merged
-
-                    // Same category check
-                    if (master.getCategory() != duplicate.getCategory()) continue;
-
-                    // Determine matching strategy based on category
-                    com.example.backend.entity.ComplaintCategory cat = master.getCategory();
-                    boolean roomLevelMatchNeeded = (cat == com.example.backend.entity.ComplaintCategory.ELECTRICITY ||
-                                                   cat == com.example.backend.entity.ComplaintCategory.WATER ||
-                                                   cat == com.example.backend.entity.ComplaintCategory.MAINTENANCE);
-
-                    if (roomLevelMatchNeeded) {
-                        String masterRoom = master.getRoomNumber() != null ? master.getRoomNumber().trim() : "";
-                        String duplicateRoom = duplicate.getRoomNumber() != null ? duplicate.getRoomNumber().trim() : "";
-                        if (masterRoom.isEmpty() || !masterRoom.equalsIgnoreCase(duplicateRoom)) continue;
-                    } else {
-                        // Same block check
-                        String duplicateBlock = com.example.backend.util.EmbeddingUtil.extractBlock(duplicate.getRoomNumber());
-                        if (masterBlock.isEmpty() || !masterBlock.equalsIgnoreCase(duplicateBlock)) continue;
-                    }
-
-                    // Cosine similarity check
-                    float[] duplicateEmbedding = com.example.backend.util.EmbeddingUtil.deserializeEmbedding(duplicate.getEmbedding());
-                    if (duplicateEmbedding == null) continue;
-
-                    double similarity = com.example.backend.util.EmbeddingUtil.cosineSimilarity(masterEmbedding, duplicateEmbedding);
-                    if (similarity >= threshold) {
-                        System.out.println("[DataInitializer] Found pre-existing semantic duplicate! Merging complaint #" + duplicate.getId() + 
-                            " ('" + duplicate.getDescription() + "') into #" + master.getId() + " ('" + master.getDescription() + "') with similarity: " + similarity);
+                         String normalized = com.example.backend.util.EmbeddingUtil.normalizeText(complaint.getDescription());
+                         float[] embedding = embeddingService.getEmbedding(normalized);
+                         if (embedding != null) {
+                             complaint.setEmbedding(com.example.backend.util.EmbeddingUtil.serializeEmbedding(embedding));
+                             complaintRepository.save(complaint);
+                             String embSnippet = java.util.Arrays.toString(java.util.Arrays.copyOf(embedding, Math.min(5, embedding.length))) + "...";
+                             System.out.println("[DataInitializer] Generated embedding for complaint #" + complaint.getId() + ": " + embSnippet);
+                         }
+                     }
+                 }
+                 System.out.println("[DataInitializer] Completed embedding initialization for existing complaints.");
+             }
+ 
+             // Perform retroactive deduplication for UNRESOLVED complaints
+             // Refresh list from database to ensure embeddings are loaded
+             java.util.List<Complaint> unresolved = complaintRepository.findAll().stream()
+                 .filter(c -> c.getStatus() != Complaint.Status.RESOLVED)
+                 .collect(java.util.stream.Collectors.toList());
+ 
+             System.out.println("[DataInitializer] Scanning " + unresolved.size() + " unresolved complaints for retroactive semantic duplicates (threshold = " + similarityThreshold + ")...");
+ 
+             boolean changed = false;
+             for (int i = 0; i < unresolved.size(); i++) {
+                 Complaint master = unresolved.get(i);
+                 if (master.getId() == null) continue; // Already merged
+ 
+                 String masterBlock = com.example.backend.util.EmbeddingUtil.extractBlock(master.getRoomNumber());
+                 float[] masterEmbedding = com.example.backend.util.EmbeddingUtil.deserializeEmbedding(master.getEmbedding());
+                 if (masterEmbedding == null) continue;
+ 
+                 for (int j = i + 1; j < unresolved.size(); j++) {
+                     Complaint duplicate = unresolved.get(j);
+                     if (duplicate.getId() == null) continue; // Already merged
+ 
+                     // Same category check
+                     if (master.getCategory() != duplicate.getCategory()) continue;
+ 
+                     // Determine matching strategy based on category
+                     com.example.backend.entity.ComplaintCategory cat = master.getCategory();
+                     boolean roomLevelMatchNeeded = (cat == com.example.backend.entity.ComplaintCategory.ELECTRICITY ||
+                                                    cat == com.example.backend.entity.ComplaintCategory.WATER ||
+                                                    cat == com.example.backend.entity.ComplaintCategory.MAINTENANCE);
+ 
+                     if (roomLevelMatchNeeded) {
+                         String masterRoom = master.getRoomNumber() != null ? master.getRoomNumber().trim() : "";
+                         String duplicateRoom = duplicate.getRoomNumber() != null ? duplicate.getRoomNumber().trim() : "";
+                         System.out.println("[DataInitializer] Checking room-level match between unresolved complaint #" + master.getId() + " (" + masterRoom + ") and unresolved #" + duplicate.getId() + " (" + duplicateRoom + ")");
+                         if (masterRoom.isEmpty() || !masterRoom.equalsIgnoreCase(duplicateRoom)) {
+                             System.out.println("[DataInitializer] duplicate detection decision: SKIP (Room mismatch: " + masterRoom + " vs " + duplicateRoom + ")");
+                             continue;
+                         }
+                     } else {
+                         // Same block check
+                         String duplicateBlock = com.example.backend.util.EmbeddingUtil.extractBlock(duplicate.getRoomNumber());
+                         System.out.println("[DataInitializer] Checking block-level match between unresolved complaint #" + master.getId() + " (block " + masterBlock + ") and unresolved #" + duplicate.getId() + " (block " + duplicateBlock + ")");
+                         if (masterBlock.isEmpty() || !masterBlock.equalsIgnoreCase(duplicateBlock)) {
+                             System.out.println("[DataInitializer] duplicate detection decision: SKIP (Block mismatch: " + masterBlock + " vs " + duplicateBlock + ")");
+                             continue;
+                         }
+                     }
+ 
+                     // Cosine similarity check
+                     float[] duplicateEmbedding = com.example.backend.util.EmbeddingUtil.deserializeEmbedding(duplicate.getEmbedding());
+                     if (duplicateEmbedding == null) continue;
+ 
+                     double similarity = com.example.backend.util.EmbeddingUtil.cosineSimilarity(masterEmbedding, duplicateEmbedding);
+                     System.out.println("[DataInitializer] Cosine similarity between unresolved #" + master.getId() + " and unresolved #" + duplicate.getId() + " is " + similarity + " (threshold: " + similarityThreshold + ")");
+ 
+                     if (similarity >= similarityThreshold) {
+                         System.out.println("[DataInitializer] duplicate detection decision: MERGE unresolved #" + duplicate.getId() + " into master unresolved #" + master.getId());
+                         System.out.println("[DataInitializer] Found pre-existing semantic duplicate! Merging complaint #" + duplicate.getId() + 
+                             " ('" + duplicate.getDescription() + "') into #" + master.getId() + " ('" + master.getDescription() + "') with similarity: " + similarity);
 
                         // Merge duplicate user and affected students into master
                         java.util.List<User> affected = master.getAffectedStudents();

@@ -1,6 +1,5 @@
 package com.example.backend.controller;
 
-import com.example.backend.dto.ComplaintRequest;
 import com.example.backend.dto.StatusUpdateRequest;
 import com.example.backend.entity.Complaint;
 import com.example.backend.entity.ComplaintCategory;
@@ -15,11 +14,15 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.List;
 
 @RestController
 @RequestMapping("/complaints")
 public class ComplaintController {
+
+    private static final Logger log = LoggerFactory.getLogger(ComplaintController.class);
 
     @Autowired
     private ComplaintService complaintService;
@@ -37,8 +40,13 @@ public class ComplaintController {
         
         String imageUrl = null;
         if (image != null && !image.isEmpty()) {
+            log.info("[ComplaintController] Received image upload: Original Name = {}, Size = {} bytes", 
+                image.getOriginalFilename(), image.getSize());
             String fileName = fileStorageService.storeFile(image);
             imageUrl = fileStorageService.getFileUrl(fileName);
+            log.info("[ComplaintController] Database image path saved / Generated image URL: {}", imageUrl);
+        } else {
+            log.info("[ComplaintController] No image attached to complaint");
         }
         
         Complaint complaint = complaintService.createComplaint(title, description, imageUrl, user);
@@ -69,7 +77,7 @@ public class ComplaintController {
     @PutMapping("/{id}/status")
     @PreAuthorize("hasRole('WARDEN')")
     public ResponseEntity<Complaint> updateComplaintStatus(@PathVariable Long id, @Valid @RequestBody StatusUpdateRequest request) {
-        Complaint complaint = complaintService.updateComplaintStatus(id, request.getStatus(), request.getRemarks());
+        Complaint complaint = complaintService.updateComplaintStatus(id, request);
         return ResponseEntity.ok(complaint);
     }
 

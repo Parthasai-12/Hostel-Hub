@@ -309,3 +309,147 @@
         padding-top: 4rem;
     }
 }
+
+/* ─── Modal Overlay ─── */
+.warden-dashboard .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.warden-dashboard .modal-content {
+    background: #1e293b;
+    border: 1px solid rgba(100, 116, 139, 0.3);
+    border-radius: 16px;
+    width: 90%;
+    max-width: 500px;
+    padding: 2rem;
+    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.5), 0 8px 10px -6px rgb(0 0 0 / 0.5);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.warden-dashboard .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(100, 116, 139, 0.15);
+    padding-bottom: 1rem;
+}
+
+.warden-dashboard .modal-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #f8fafc;
+    margin: 0;
+}
+
+.warden-dashboard .modal-close {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.warden-dashboard .modal-close:hover {
+    background: rgba(100, 116, 139, 0.15);
+    color: #f8fafc;
+}
+
+.warden-dashboard .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.warden-dashboard .form-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #94a3b8;
+}
+
+.warden-dashboard .form-input,
+.warden-dashboard .form-select,
+.warden-dashboard .form-textarea {
+    background: #0f172a;
+    color: #f8fafc;
+    border: 1px solid rgba(100, 116, 139, 0.3);
+    border-radius: 8px;
+    padding: 0.75rem;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s ease;
+}
+
+.warden-dashboard .form-input:focus,
+.warden-dashboard .form-select:focus,
+.warden-dashboard .form-textarea:focus {
+    border-color: #667eea;
+}
+
+.warden-dashboard .form-textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.warden-dashboard .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    border-top: 1px solid rgba(100, 116, 139, 0.15);
+    padding-top: 1rem;
+}
+
+.warden-dashboard .btn-cancel {
+    background: transparent;
+    border: 1px solid rgba(100, 116, 139, 0.3);
+    color: #94a3b8;
+    padding: 0.6rem 1.25rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.warden-dashboard .btn-cancel:hover {
+    background: rgba(100, 116, 139, 0.1);
+    color: #f8fafc;
+}
+
+.warden-dashboard .btn-submit {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    color: #ffffff;
+    padding: 0.6rem 1.25rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+}
+
+.warden-dashboard .btn-submit:hover {
+    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+    transform: translateY(-1px);
+}
+
+.warden-dashboard .btn-submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}

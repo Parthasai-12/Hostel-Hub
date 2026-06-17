@@ -94,6 +94,9 @@ public class ComplaintService {
         float[] newEmbedding = embeddingService.getEmbedding(normalizedDescription);
 
         if (newEmbedding != null) {
+            String embSnippet = java.util.Arrays.toString(java.util.Arrays.copyOf(newEmbedding, Math.min(5, newEmbedding.length))) + "...";
+            log.info("[ComplaintService] Generated embedding snippet: {}", embSnippet);
+
             // 2. Fetch unresolved recent complaints
             LocalDateTime dateThreshold = LocalDateTime.now().minusDays(recentDays);
             List<Complaint> unresolvedRecent = complaintRepository.findUnresolvedRecentComplaints(dateThreshold);
@@ -121,17 +124,21 @@ public class ComplaintService {
                     // Must be exact same room
                     String incomingRoom = user.getRoomNumber() != null ? user.getRoomNumber().trim() : "";
                     String existingRoom = existing.getRoomNumber() != null ? existing.getRoomNumber().trim() : "";
+                    log.info("[ComplaintService] Comparing room-level match for #{} and #{}: incoming room = '{}', existing room = '{}'",
+                        existing.getId(), existing.getId(), incomingRoom, existingRoom);
                     if (incomingRoom.isEmpty() || !incomingRoom.equalsIgnoreCase(existingRoom)) {
-                        log.info("[ComplaintService] Skipping complaint #{} (title='{}') - room mismatch for room-level category {} (incoming: {}, existing: {})",
-                            existing.getId(), existing.getTitle(), newCategory, incomingRoom, existingRoom);
+                        log.info("[ComplaintService] duplicate detection decision: SKIP (Room mismatch: incoming = '{}', existing = '{}')",
+                            incomingRoom, existingRoom);
                         continue;
                     }
                 } else {
                     // Check block matching (for wider floor-level or block-level issues)
                     String existingBlock = com.example.backend.util.EmbeddingUtil.extractBlock(existing.getRoomNumber());
+                    log.info("[ComplaintService] Comparing block-level match for #{} and #{}: incoming block = '{}', existing block = '{}'",
+                        existing.getId(), existing.getId(), studentBlock, existingBlock);
                     if (studentBlock.isEmpty() || !studentBlock.equalsIgnoreCase(existingBlock)) {
-                        log.debug("[ComplaintService] Skipping complaint #{} (title='{}') - block mismatch (incoming: {}, existing: {})",
-                            existing.getId(), existing.getTitle(), studentBlock, existingBlock);
+                        log.info("[ComplaintService] duplicate detection decision: SKIP (Block mismatch: incoming = '{}', existing = '{}')",
+                            studentBlock, existingBlock);
                         continue;
                     }
                 }
@@ -163,6 +170,7 @@ public class ComplaintService {
 
             // 5. If similarity exceeds threshold, group/link student to the existing master complaint
             if (highestMatch != null && maxSimilarity >= similarityThreshold) {
+                log.info("[ComplaintService] duplicate detection decision: MERGE incoming complaint into master complaint #{}", highestMatch.getId());
                 log.info("[ComplaintService] SUCCESS: Semantic duplicate detected! " +
                          "Matched complaint ID: #{}, Similarity Score: {} >= Threshold: {}. Grouping complaint...",
                     highestMatch.getId(), maxSimilarity, similarityThreshold);
@@ -193,10 +201,10 @@ public class ComplaintService {
                 }
             } else {
                 if (highestMatch != null) {
-                    log.info("[ComplaintService] NO MATCH: Highest similarity was {} (complaint #{}), which is below threshold {}.",
+                    log.info("[ComplaintService] duplicate detection decision: CREATE NEW (Highest similarity was {} with complaint #{}, which is below threshold {})",
                         maxSimilarity, highestMatch.getId(), similarityThreshold);
                 } else {
-                    log.info("[ComplaintService] NO MATCH: No candidate complaints found in the same category ({}) and block ({}) to compare.",
+                    log.info("[ComplaintService] duplicate detection decision: CREATE NEW (No candidate complaints found in the same category ({}) and block ({}) to compare)",
                         newCategory, studentBlock);
                 }
             }
@@ -246,15 +254,56 @@ public class ComplaintService {
     // -------------------------------------------------------------------------
     // Warden: update status + async email on RESOLVED (Feature 3)
     // -------------------------------------------------------------------------
-    public Complaint updateComplaintStatus(Long id, Complaint.Status newStatus, String remarks) {
+    public Complaint updateComplaintStatus(Long id, com.example.backend.dto.StatusUpdateRequest request) {
         Complaint complaint = complaintRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Complaint not found with id: " + id));
 
         Complaint.Status previousStatus = complaint.getStatus();
+        Complaint.Status newStatus = request.getStatus();
+        
         complaint.setStatus(newStatus);
+        complaint.setEstimatedResolutionDays(request.getEstimatedDays());
+        if (request.getEstimatedDays() != null) {
+            complaint.setExpectedCompletionDate(java.time.LocalDate.now().plusDays(request.getEstimatedDays()));
+        } else {
+            complaint.setExpectedCompletionDate(null);
+        }
+        complaint.setProgressMessage(request.getMessage());
+        complaint.setUpdatedAt(LocalDateTime.now());
+        
         Complaint saved = complaintRepository.save(complaint);
 
         log.info("[ComplaintService] Complaint id={} status changed: {} -> {}", id, previousStatus, newStatus);
+
+        // Trigger status update event when status transitions to IN_PROGRESS
+        if (newStatus == Complaint.Status.IN_PROGRESS && newStatus != previousStatus) {
+            log.info("[ComplaintService] Triggering async status update email for complaint id={}", id);
+            
+            java.util.List<com.example.backend.dto.RecipientInfo> recipients = new java.util.ArrayList<>();
+            if (saved.getUser() != null) {
+                recipients.add(new com.example.backend.dto.RecipientInfo(saved.getUser().getEmail(), saved.getUser().getName()));
+            }
+            if (saved.getAffectedStudents() != null) {
+                for (User student : saved.getAffectedStudents()) {
+                    recipients.add(new com.example.backend.dto.RecipientInfo(student.getEmail(), student.getName()));
+                }
+            }
+            
+            String expectedResStr = saved.getExpectedCompletionDate() != null
+                    ? saved.getExpectedCompletionDate().format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy"))
+                    : "N/A";
+            
+            com.example.backend.dto.ComplaintStatusUpdateEvent statusEvent = new com.example.backend.dto.ComplaintStatusUpdateEvent(
+                saved.getId(),
+                saved.getTitle(),
+                saved.getStatus().name(),
+                expectedResStr,
+                saved.getProgressMessage(),
+                recipients
+            );
+            
+            emailProducer.publishComplaintStatusUpdateEvent(statusEvent);
+        }
 
         // Trigger resolution email ONLY when transitioning TO RESOLVED (prevents duplicate emails)
         if (newStatus == Complaint.Status.RESOLVED && previousStatus != Complaint.Status.RESOLVED) {
@@ -274,12 +323,16 @@ public class ComplaintService {
                     ? saved.getCreatedAt().format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a"))
                     : "N/A";
             
+            String remarksText = (request.getRemarks() != null && !request.getRemarks().isBlank())
+                    ? request.getRemarks()
+                    : request.getMessage();
+            
             com.example.backend.dto.ComplaintResolvedEvent event = new com.example.backend.dto.ComplaintResolvedEvent(
                 saved.getId(),
                 saved.getTitle(),
                 saved.getCategory() != null ? saved.getCategory().name() : "General",
                 resolvedOn,
-                remarks,
+                remarksText,
                 recipients
             );
             

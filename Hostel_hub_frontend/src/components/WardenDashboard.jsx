@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import api from '../services/api';
+import api, { BASE_URL } from '../services/api';
 import {
     LayoutDashboard,
     List,
@@ -23,6 +23,12 @@ const WardenDashboard = ({ onNavigate, onLogout, userName }) => {
     const [error, setError] = useState(null);
     const [updatingId, setUpdatingId] = useState(null);
     const [selectedCategory, setSelectedCategory] = useState('ALL');
+    const [modalOpen, setModalOpen] = useState(false);
+    const [modalComplaint, setModalComplaint] = useState(null);
+    const [modalStatus, setModalStatus] = useState('PENDING');
+    const [modalEstimatedDays, setModalEstimatedDays] = useState('');
+    const [modalMessage, setModalMessage] = useState('');
+    const [modalRemarks, setModalRemarks] = useState('');
 
     useEffect(() => {
         const role = localStorage.getItem('role');
@@ -48,23 +54,43 @@ const WardenDashboard = ({ onNavigate, onLogout, userName }) => {
         }
     };
 
-    const handleStatusUpdate = async (id, newStatus) => {
-        let remarks = "";
-        if (newStatus === 'RESOLVED') {
-            remarks = window.prompt("Enter resolution remarks (this will be emailed to the student):");
-            if (remarks === null) return; // Cancelled by user
-        }
+    const handleStatusSelectChange = (complaint, newStatus) => {
+        setModalComplaint(complaint);
+        setModalStatus(newStatus);
+        setModalEstimatedDays(complaint.estimatedResolutionDays || '');
+        setModalMessage(complaint.progressMessage || '');
+        setModalRemarks('');
+        setModalOpen(true);
+    };
+
+    const handleModalSubmit = async (e) => {
+        e.preventDefault();
+        if (!modalComplaint) return;
 
         try {
-            setUpdatingId(id);
-            await api.put(`/complaints/${id}/status`, { status: newStatus, remarks });
+            setUpdatingId(modalComplaint.id);
+            setModalOpen(false);
+            
+            const payload = {
+                status: modalStatus,
+                estimatedDays: modalEstimatedDays ? parseInt(modalEstimatedDays, 10) : null,
+                message: modalMessage,
+                remarks: modalStatus === 'RESOLVED' ? modalRemarks : ''
+            };
+
+            await api.put(`/complaints/${modalComplaint.id}/status`, payload);
             await fetchComplaints();
         } catch (err) {
-// logger removed
             alert('Failed to update status');
         } finally {
             setUpdatingId(null);
+            setModalComplaint(null);
         }
+    };
+
+    const handleModalClose = () => {
+        setModalOpen(false);
+        setModalComplaint(null);
     };
 
     const menuItems = [
@@ -166,6 +192,7 @@ const WardenDashboard = ({ onNavigate, onLogout, userName }) => {
                                         <th style={{ whiteSpace: 'nowrap' }}>Room No</th>
                                         <th>Issue</th>
                                         <th>Description</th>
+                                        <th>Image</th>
                                         <th style={{ textAlign: 'center' }}>Affected</th>
                                         <th>Date</th>
                                         <th>Status</th>
@@ -180,6 +207,25 @@ const WardenDashboard = ({ onNavigate, onLogout, userName }) => {
                                             <td style={{ whiteSpace: 'nowrap' }}>{complaint.roomNumber || 'N/A'}</td>
                                             <td>{complaint.title}</td>
                                             <td className="description-cell" title={complaint.description}>{complaint.description}</td>
+                                            <td className="image-cell">
+                                                {complaint.imageUrl ? (
+                                                    <img 
+                                                        src={`${BASE_URL}${complaint.imageUrl}`} 
+                                                        alt="Complaint" 
+                                                        className="complaint-image-preview"
+                                                        style={{ 
+                                                            width: '50px', 
+                                                            height: '50px', 
+                                                            objectFit: 'cover', 
+                                                            borderRadius: '4px',
+                                                            cursor: 'pointer'
+                                                        }}
+                                                        onClick={() => window.open(`${BASE_URL}${complaint.imageUrl}`, '_blank')}
+                                                    />
+                                                ) : (
+                                                    <span style={{ color: '#94a3b8', fontSize: '0.875rem' }}>No image</span>
+                                                )}
+                                            </td>
                                             <td style={{ 
                                                 textAlign: 'center', 
                                                 fontWeight: '700', 
@@ -202,7 +248,7 @@ const WardenDashboard = ({ onNavigate, onLogout, userName }) => {
                                                 <select
                                                     className="status-select"
                                                     value={complaint.status}
-                                                    onChange={(e) => handleStatusUpdate(complaint.id, e.target.value)}
+                                                    onChange={(e) => handleStatusSelectChange(complaint, e.target.value)}
                                                     disabled={updatingId === complaint.id}
                                                 >
                                                     <option value="PENDING">Pending</option>
@@ -326,6 +372,96 @@ const WardenDashboard = ({ onNavigate, onLogout, userName }) => {
                     {renderComplaintsTable()}
                 </motion.div>
             </main>
+
+            {/* Modal Overlay Form */}
+            <AnimatePresence>
+                {modalOpen && (
+                    <motion.div 
+                        className="modal-overlay"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                    >
+                        <motion.div 
+                            className="modal-content"
+                            initial={{ scale: 0.9, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.9, y: 20 }}
+                            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                        >
+                            <div className="modal-header">
+                                <h3 className="modal-title">Update Complaint Status</h3>
+                                <button className="modal-close" onClick={handleModalClose}>
+                                    <X size={20} />
+                                </button>
+                            </div>
+                            
+                            <form onSubmit={handleModalSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                <div className="form-group">
+                                    <label className="form-label">Status</label>
+                                    <select 
+                                        className="form-select"
+                                        value={modalStatus}
+                                        onChange={(e) => setModalStatus(e.target.value)}
+                                        required
+                                    >
+                                        <option value="PENDING">Pending</option>
+                                        <option value="IN_PROGRESS">In Progress</option>
+                                        <option value="RESOLVED">Resolved</option>
+                                    </select>
+                                </div>
+
+                                {modalStatus === 'IN_PROGRESS' && (
+                                    <div className="form-group">
+                                        <label className="form-label">Estimated Resolution Days</label>
+                                        <input 
+                                            type="number"
+                                            className="form-input"
+                                            value={modalEstimatedDays}
+                                            onChange={(e) => setModalEstimatedDays(e.target.value)}
+                                            min="1"
+                                            placeholder="Enter number of days"
+                                            required
+                                        />
+                                    </div>
+                                )}
+
+                                <div className="form-group">
+                                    <label className="form-label">Progress Message</label>
+                                    <textarea 
+                                        className="form-textarea"
+                                        value={modalMessage}
+                                        onChange={(e) => setModalMessage(e.target.value)}
+                                        placeholder="Explain current progress or next steps..."
+                                        required
+                                    />
+                                </div>
+
+                                {modalStatus === 'RESOLVED' && (
+                                    <div className="form-group">
+                                        <label className="form-label">Resolution Remarks (optional)</label>
+                                        <textarea 
+                                            className="form-textarea"
+                                            value={modalRemarks}
+                                            onChange={(e) => setModalRemarks(e.target.value)}
+                                            placeholder="Enter resolution remarks that will be sent via email..."
+                                        />
+                                    </div>
+                                )}
+
+                                <div className="modal-footer">
+                                    <button type="button" className="btn-cancel" onClick={handleModalClose}>
+                                        Cancel
+                                    </button>
+                                    <button type="submit" className="btn-submit">
+                                        Submit Update
+                                    </button>
+                                </div>
+                            </form>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };
